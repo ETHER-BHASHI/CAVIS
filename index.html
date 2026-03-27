@@ -1,0 +1,1648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAVIS — Carrier Verification System</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Unbounded:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════════════
+   DESIGN TOKENS
+══════════════════════════════════════════════════════ */
+:root {
+  --bg:       #05080f;
+  --bg2:      #090d18;
+  --bg3:      #0d1220;
+  --surface:  #111827;
+  --surface2: #1a2235;
+  --border:   rgba(56,189,248,0.10);
+  --border2:  rgba(56,189,248,0.22);
+  --border3:  rgba(56,189,248,0.40);
+  --cyan:     #38bdf8;
+  --cyan2:    #7dd3fc;
+  --green:    #4ade80;
+  --green2:   #86efac;
+  --amber:    #fbbf24;
+  --amber2:   #fde68a;
+  --red:      #f87171;
+  --red2:     #fca5a5;
+  --purple:   #c084fc;
+  --text:     #e2e8f0;
+  --text2:    #94a3b8;
+  --text3:    #475569;
+  --mono:     'JetBrains Mono', monospace;
+  --head:     'Unbounded', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Grid noise texture overlay */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(56,189,248,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56,189,248,0.015) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Ambient glow top-left */
+body::after {
+  content: '';
+  position: fixed;
+  top: -200px; left: -200px;
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(56,189,248,0.05) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.app { position: relative; z-index: 1; }
+
+/* ══════════════════════════════════════════════════════
+   TOPBAR
+══════════════════════════════════════════════════════ */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 32px;
+  height: 58px;
+  background: rgba(5,8,15,0.92);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  display: flex; align-items: center; gap: 14px;
+}
+
+.brand-mark {
+  width: 34px; height: 34px;
+  border: 1px solid var(--border3);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--head);
+  font-size: 13px; font-weight: 700;
+  color: var(--cyan);
+  position: relative;
+}
+
+.brand-mark::after {
+  content: '';
+  position: absolute; inset: 2px;
+  border-radius: 6px;
+  background: rgba(56,189,248,0.06);
+}
+
+.brand-name {
+  font-family: var(--head);
+  font-size: 13px; font-weight: 700;
+  color: var(--text); letter-spacing: 0.05em;
+}
+
+.brand-sub {
+  font-size: 9px; color: var(--text3);
+  letter-spacing: 0.12em; text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.topbar-right {
+  display: flex; align-items: center; gap: 20px;
+  font-size: 11px; color: var(--text3);
+}
+
+.live-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  display: inline-block; margin-right: 5px;
+  animation: livepulse 2s ease-in-out infinite;
+}
+
+@keyframes livepulse {
+  0%,100% { opacity:1; transform:scale(1); }
+  50%      { opacity:0.5; transform:scale(0.75); }
+}
+
+.topbar-clock { color: var(--cyan); font-size: 12px; }
+
+/* ══════════════════════════════════════════════════════
+   HERO SECTION
+══════════════════════════════════════════════════════ */
+.hero {
+  padding: 48px 32px 32px;
+  max-width: 1400px; margin: 0 auto;
+}
+
+.hero-label {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--cyan); margin-bottom: 14px;
+}
+
+.hero-label::before {
+  content: '';
+  width: 24px; height: 1px; background: var(--cyan);
+}
+
+.hero h1 {
+  font-family: var(--head);
+  font-size: clamp(22px, 3vw, 34px);
+  font-weight: 900;
+  line-height: 1.15;
+  margin-bottom: 10px;
+  background: linear-gradient(135deg, var(--text) 0%, var(--cyan2) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-desc {
+  font-size: 12px; color: var(--text2); max-width: 600px; line-height: 1.8;
+}
+
+/* ══════════════════════════════════════════════════════
+   STAT STRIP
+══════════════════════════════════════════════════════ */
+.stat-strip {
+  display: flex; gap: 1px;
+  margin: 24px 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.stat-cell {
+  flex: 1;
+  padding: 16px 20px;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  transition: background 0.2s;
+}
+.stat-cell:last-child { border-right: none; }
+.stat-cell:hover { background: var(--surface); }
+
+.stat-val {
+  font-family: var(--head);
+  font-size: 22px; font-weight: 700;
+  line-height: 1; margin-bottom: 4px;
+}
+
+.stat-lbl {
+  font-size: 10px; color: var(--text3);
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+
+.c-cyan   { color: var(--cyan); }
+.c-green  { color: var(--green); }
+.c-amber  { color: var(--amber); }
+.c-red    { color: var(--red); }
+.c-purple { color: var(--purple); }
+
+/* ══════════════════════════════════════════════════════
+   MAIN GRID
+══════════════════════════════════════════════════════ */
+.main-grid {
+  display: grid;
+  grid-template-columns: 480px 1fr;
+  gap: 16px;
+  padding: 0 32px 32px;
+  max-width: 1400px; margin: 0 auto;
+  align-items: start;
+}
+
+/* ══════════════════════════════════════════════════════
+   PANEL
+══════════════════════════════════════════════════════ */
+.panel {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.panel-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg3);
+}
+
+.panel-title {
+  font-family: var(--head);
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text);
+}
+
+.panel-badge {
+  font-size: 9px; font-weight: 600;
+  padding: 3px 9px; border-radius: 20px;
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+
+.badge-cyan   { background: rgba(56,189,248,0.12);  color: var(--cyan);   border: 1px solid rgba(56,189,248,0.2);  }
+.badge-green  { background: rgba(74,222,128,0.10);  color: var(--green);  border: 1px solid rgba(74,222,128,0.2);  }
+.badge-amber  { background: rgba(251,191,36,0.10);  color: var(--amber);  border: 1px solid rgba(251,191,36,0.2);  }
+.badge-red    { background: rgba(248,113,113,0.10); color: var(--red);    border: 1px solid rgba(248,113,113,0.2); }
+
+/* ══════════════════════════════════════════════════════
+   FORM
+══════════════════════════════════════════════════════ */
+.form-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+
+.form-section-label {
+  font-size: 9px; font-weight: 600;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--cyan); padding: 8px 0 4px;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+.form-section-label:first-child { border-top: none; margin-top: 0; padding-top: 0; }
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.field-row.full { grid-template-columns: 1fr; }
+
+.field { display: flex; flex-direction: column; gap: 5px; }
+
+label {
+  font-size: 9px; font-weight: 500;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--text3);
+}
+
+input, select {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  appearance: none;
+}
+
+input:focus, select:focus {
+  border-color: var(--border3);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px rgba(56,189,248,0.07);
+}
+
+input::placeholder { color: var(--text3); }
+
+input.valid   { border-color: rgba(74,222,128,0.4); }
+input.invalid { border-color: rgba(248,113,113,0.4); }
+
+select option { background: var(--surface); }
+
+.field-hint {
+  font-size: 9px; color: var(--text3); margin-top: 1px;
+}
+
+.field-error {
+  font-size: 9px; color: var(--red); margin-top: 1px;
+  display: none;
+}
+
+.field-error.show { display: block; }
+
+/* ── Submit Button ─────────────────────────────────── */
+.submit-btn {
+  width: 100%;
+  padding: 14px;
+  background: var(--cyan);
+  border: none;
+  border-radius: 10px;
+  color: var(--bg);
+  font-family: var(--head);
+  font-size: 12px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+  margin-top: 6px;
+}
+
+.submit-btn:hover {
+  background: var(--cyan2);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(56,189,248,0.25);
+}
+
+.submit-btn:active { transform: translateY(0); }
+
+.submit-btn.loading {
+  background: var(--surface);
+  color: var(--cyan);
+  border: 1px solid var(--border2);
+  cursor: wait;
+}
+
+.submit-btn.loading::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(56,189,248,0.15), transparent);
+  animation: shimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  to { left: 100%; }
+}
+
+/* ── Quick Fill Buttons ────────────────────────────── */
+.quick-fill {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  padding: 12px 20px;
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+}
+
+.qbtn {
+  font-size: 9px; font-weight: 600;
+  padding: 5px 10px; border-radius: 6px;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  cursor: pointer; border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text2);
+  transition: all 0.15s;
+}
+
+.qbtn:hover { border-color: var(--border2); color: var(--text); }
+.qbtn.qgreen { border-color: rgba(74,222,128,0.3); color: var(--green); }
+.qbtn.qamber { border-color: rgba(251,191,36,0.3); color: var(--amber); }
+.qbtn.qred   { border-color: rgba(248,113,113,0.3); color: var(--red); }
+
+/* ══════════════════════════════════════════════════════
+   RESULTS COLUMN
+══════════════════════════════════════════════════════ */
+.results-col { display: flex; flex-direction: column; gap: 16px; }
+
+/* ── Empty state ───────────────────────────────────── */
+.empty-state {
+  padding: 60px 20px;
+  text-align: center;
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  color: var(--text3);
+}
+
+.empty-icon {
+  font-size: 36px; margin-bottom: 12px; opacity: 0.3;
+  display: block;
+}
+
+.empty-title {
+  font-family: var(--head);
+  font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text2);
+}
+
+/* ── Verdict Card ──────────────────────────────────── */
+.verdict-card {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  display: none;
+  animation: fadeup 0.5s ease;
+}
+
+@keyframes fadeup {
+  from { opacity:0; transform: translateY(12px); }
+  to   { opacity:1; transform: translateY(0); }
+}
+
+.verdict-card.show { display: block; }
+
+.verdict-banner {
+  padding: 24px 24px 20px;
+  display: flex; align-items: center; gap: 20px;
+}
+
+.verdict-banner.approved { background: linear-gradient(135deg, rgba(74,222,128,0.12), rgba(74,222,128,0.04)); border-bottom: 1px solid rgba(74,222,128,0.2); }
+.verdict-banner.review   { background: linear-gradient(135deg, rgba(251,191,36,0.12),  rgba(251,191,36,0.04));  border-bottom: 1px solid rgba(251,191,36,0.2);  }
+.verdict-banner.rejected { background: linear-gradient(135deg, rgba(248,113,113,0.14), rgba(248,113,113,0.04)); border-bottom: 1px solid rgba(248,113,113,0.2); }
+
+.verdict-icon {
+  width: 60px; height: 60px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; flex-shrink: 0;
+}
+
+.verdict-icon.approved { background: rgba(74,222,128,0.15);  border: 2px solid rgba(74,222,128,0.4);  }
+.verdict-icon.review   { background: rgba(251,191,36,0.12);  border: 2px solid rgba(251,191,36,0.35); }
+.verdict-icon.rejected { background: rgba(248,113,113,0.12); border: 2px solid rgba(248,113,113,0.4); }
+
+.verdict-text-block { flex: 1; }
+
+.verdict-label {
+  font-size: 10px; font-weight: 500;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.verdict-label.approved { color: var(--green); }
+.verdict-label.review   { color: var(--amber); }
+.verdict-label.rejected { color: var(--red); }
+
+.verdict-title {
+  font-family: var(--head);
+  font-size: 20px; font-weight: 900; margin-bottom: 6px;
+}
+
+.verdict-reason {
+  font-size: 11px; color: var(--text2); line-height: 1.6; max-width: 380px;
+}
+
+.verdict-score-ring {
+  flex-shrink: 0;
+}
+
+/* ── Score Ring ────────────────────────────────────── */
+.score-ring-svg { display: block; }
+
+/* ── Checks Grid ───────────────────────────────────── */
+.checks-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: var(--border);
+}
+
+.check-cell {
+  background: var(--bg2);
+  padding: 14px 16px;
+  display: flex; align-items: flex-start; gap: 12px;
+}
+
+.check-icon {
+  width: 28px; height: 28px; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; flex-shrink: 0; margin-top: 1px;
+}
+
+.check-icon.pass   { background: rgba(74,222,128,0.1);  }
+.check-icon.fail   { background: rgba(248,113,113,0.1); }
+.check-icon.warn   { background: rgba(251,191,36,0.1);  }
+.check-icon.skip   { background: rgba(100,116,139,0.1); }
+
+.check-name {
+  font-size: 11px; font-weight: 600; margin-bottom: 3px;
+}
+
+.check-detail {
+  font-size: 10px; color: var(--text3); line-height: 1.5;
+}
+
+.check-tag {
+  display: inline-block; margin-top: 4px;
+  font-size: 9px; font-weight: 600;
+  padding: 2px 7px; border-radius: 4px;
+  letter-spacing: 0.06em; text-transform: uppercase;
+}
+
+.tag-pass { background: rgba(74,222,128,0.1);  color: var(--green); }
+.tag-fail { background: rgba(248,113,113,0.1); color: var(--red);   }
+.tag-warn { background: rgba(251,191,36,0.1);  color: var(--amber); }
+.tag-skip { background: rgba(100,116,139,0.1); color: var(--text3); }
+
+/* ── Fraud Factors ─────────────────────────────────── */
+.factors-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; }
+
+.factor-row {
+  display: flex; align-items: center; gap: 10px;
+}
+
+.factor-name { font-size: 11px; color: var(--text2); flex: 1; }
+
+.factor-bar-track {
+  width: 100px; height: 5px;
+  background: var(--surface2); border-radius: 3px; overflow: hidden;
+}
+
+.factor-bar-fill { height: 100%; border-radius: 3px; }
+
+.factor-weight {
+  font-size: 10px; font-weight: 600; min-width: 28px; text-align: right;
+}
+
+/* ── Audit JSON ────────────────────────────────────── */
+.audit-body { padding: 16px 20px; }
+
+.audit-json {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-size: 11px; line-height: 1.7;
+  overflow-x: auto;
+  white-space: pre;
+  color: var(--cyan2);
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.json-key    { color: var(--cyan2); }
+.json-str    { color: var(--green2); }
+.json-num    { color: var(--amber2); }
+.json-bool   { color: var(--purple); }
+
+/* ── Copy button ───────────────────────────────────── */
+.copy-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 10px; padding: 6px 12px; border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text2); cursor: pointer;
+  transition: all 0.15s; margin-top: 10px;
+}
+
+.copy-btn:hover { border-color: var(--border2); color: var(--cyan); }
+
+/* ══════════════════════════════════════════════════════
+   CASE HISTORY TABLE
+══════════════════════════════════════════════════════ */
+.history-section {
+  padding: 0 32px 40px;
+  max-width: 1400px; margin: 0 auto;
+}
+
+.history-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.section-title {
+  font-family: var(--head);
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text2);
+}
+
+.clear-btn {
+  font-size: 9px; padding: 5px 10px; border-radius: 6px;
+  border: 1px solid var(--border); background: none;
+  color: var(--text3); cursor: pointer;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  transition: all 0.15s;
+}
+.clear-btn:hover { border-color: rgba(248,113,113,0.3); color: var(--red); }
+
+.history-table-wrap {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+table { width: 100%; border-collapse: collapse; }
+
+thead th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 9px; font-weight: 600;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--text3);
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+}
+
+tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s; cursor: pointer;
+}
+tbody tr:hover { background: var(--surface); }
+tbody tr:last-child { border-bottom: none; }
+
+td {
+  padding: 12px 16px;
+  font-size: 11px; vertical-align: middle;
+}
+
+.verdict-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 20px;
+  font-size: 9px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+
+.pill-approved { background: rgba(74,222,128,0.1);  color: var(--green); border: 1px solid rgba(74,222,128,0.2);  }
+.pill-review   { background: rgba(251,191,36,0.1);  color: var(--amber); border: 1px solid rgba(251,191,36,0.2);  }
+.pill-rejected { background: rgba(248,113,113,0.1); color: var(--red);   border: 1px solid rgba(248,113,113,0.2); }
+
+.risk-spark { display: flex; align-items: center; gap: 6px; }
+.risk-track { width: 50px; height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+.risk-fill  { height: 100%; border-radius: 2px; }
+
+/* ══════════════════════════════════════════════════════
+   PIPELINE TICKER (animated agent steps)
+══════════════════════════════════════════════════════ */
+.pipeline-strip {
+  padding: 0 32px;
+  max-width: 1400px; margin: 0 auto 16px;
+}
+
+.pipeline-row {
+  display: flex; gap: 4px; align-items: center;
+  padding: 12px 16px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow-x: auto;
+}
+
+.pipe-node {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 10px; border-radius: 6px;
+  font-size: 10px; font-weight: 500;
+  white-space: nowrap;
+  border: 1px solid var(--border);
+  background: var(--bg3);
+  color: var(--text3);
+  transition: all 0.4s;
+  flex-shrink: 0;
+}
+
+.pipe-node.active {
+  background: rgba(56,189,248,0.1);
+  border-color: rgba(56,189,248,0.35);
+  color: var(--cyan);
+  box-shadow: 0 0 14px rgba(56,189,248,0.12);
+  animation: nodebeat 1.2s ease-in-out infinite;
+}
+
+@keyframes nodebeat {
+  0%,100% { box-shadow: 0 0 8px rgba(56,189,248,0.1); }
+  50%      { box-shadow: 0 0 20px rgba(56,189,248,0.3); }
+}
+
+.pipe-node.done {
+  background: rgba(74,222,128,0.07);
+  border-color: rgba(74,222,128,0.25);
+  color: var(--green);
+}
+
+.pipe-arrow { color: var(--text3); font-size: 10px; flex-shrink: 0; }
+
+/* ══════════════════════════════════════════════════════
+   SCROLLBAR
+══════════════════════════════════════════════════════ */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--surface); border-radius: 3px; }
+
+/* ══════════════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  .main-grid { grid-template-columns: 1fr; }
+  .stat-strip { flex-wrap: wrap; }
+  .stat-cell  { flex: 1 1 45%; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ══════════════════════════════════════════════════
+     TOPBAR
+══════════════════════════════════════════════════ -->
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-mark">C</div>
+    <div>
+      <div class="brand-name">CAVIS</div>
+      <div class="brand-sub">Carrier Agentic Verification &amp; Investigation System</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <span><span class="live-dot"></span>Agent Online</span>
+    <span>Engine v1.0</span>
+    <span class="topbar-clock" id="clock">--:--:--</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     HERO
+══════════════════════════════════════════════════ -->
+<div class="hero">
+  <div class="hero-label">Amazon RPE · Internal Tool</div>
+  <h1>Driver &amp; Carrier<br>Verification Engine</h1>
+  <p class="hero-desc">
+    Fill the form below. The agentic engine runs 7 parallel checks —
+    PAN, Aadhaar, DL expiry, GSTIN, bank, blacklist, and anomaly scoring —
+    and returns an instant APPROVE / REVIEW / REJECT decision with full explainability.
+  </p>
+
+  <!-- Stat Strip -->
+  <div class="stat-strip" id="stat-strip">
+    <div class="stat-cell">
+      <div class="stat-val c-cyan" id="s-total">0</div>
+      <div class="stat-lbl">Cases Run</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-val c-green" id="s-approved">0</div>
+      <div class="stat-lbl">Approved</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-val c-amber" id="s-review">0</div>
+      <div class="stat-lbl">Review</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-val c-red" id="s-rejected">0</div>
+      <div class="stat-lbl">Rejected</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-val c-purple" id="s-time">—</div>
+      <div class="stat-lbl">Last Decision (ms)</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     PIPELINE TICKER
+══════════════════════════════════════════════════ -->
+<div class="pipeline-strip">
+  <div class="pipeline-row" id="pipeline-row">
+    <div class="pipe-node" id="pn0">① Input</div>
+    <div class="pipe-arrow">›</div>
+    <div class="pipe-node" id="pn1">② PAN Check</div>
+    <div class="pipe-arrow">›</div>
+    <div class="pipe-node" id="pn2">③ Aadhaar</div>
+    <div class="pipe-arrow">›</div>
+    <div class="pipe-node" id="pn3">④ DL / Docs</div>
+    <div class="pipe-arrow">›</div>
+    <div class="pipe-node" id="pn4">⑤ GSTIN</div>
+    <div class="pipe-arrow">›</div>
+    <div class="pipe-node" id="pn5">⑥ Blacklist</div>
+    <div class="pipe-arrow">›</div>
+    <div class="pipe-node" id="pn6">⑦ Fraud Score</div>
+    <div class="pipe-arrow">›</div>
+    <div class="pipe-node" id="pn7">⑧ Decision</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     MAIN GRID
+══════════════════════════════════════════════════ -->
+<div class="main-grid">
+
+  <!-- ── LEFT: INPUT FORM ──────────────────────────── -->
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title">Driver / Carrier Input</div>
+      <span class="panel-badge badge-cyan">Step 1</span>
+    </div>
+
+    <!-- Quick fill presets -->
+    <div class="quick-fill">
+      <span style="font-size:9px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;align-self:center;margin-right:4px">Quick fill:</span>
+      <button class="qbtn qgreen" onclick="quickFill('clean')">✓ Clean Driver</button>
+      <button class="qbtn qamber" onclick="quickFill('review')">⚠ Review Case</button>
+      <button class="qbtn qred"   onclick="quickFill('fraud')">✕ Fraud Case</button>
+      <button class="qbtn" onclick="quickFill('blacklist')">☠ Blacklist Hit</button>
+      <button class="qbtn" onclick="clearForm()">↺ Clear</button>
+    </div>
+
+    <div class="form-body" id="main-form">
+
+      <!-- Section: Identity -->
+      <div class="form-section-label">Identity Details</div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="f-name">Full Name *</label>
+          <input type="text" id="f-name" placeholder="Ramesh Kumar" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="f-carrier">Carrier / Company *</label>
+          <select id="f-carrier">
+            <option value="">— Select —</option>
+            <option>Delhivery</option>
+            <option>Ecom Express</option>
+            <option>XpressBees</option>
+            <option>DTDC</option>
+            <option>BlueDart</option>
+            <option>Rivigo</option>
+            <option>Porter</option>
+            <option>Shadowfax</option>
+            <option>Amazon Flex</option>
+            <option>Other</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="f-pan">PAN Number *</label>
+          <input type="text" id="f-pan" placeholder="BNZAA2310J" maxlength="10"
+            oninput="this.value=this.value.toUpperCase(); validatePAN(this)">
+          <span class="field-hint">Format: AAAAA9999A</span>
+          <span class="field-error" id="err-pan">Invalid PAN format</span>
+        </div>
+        <div class="field">
+          <label for="f-aadhaar">Aadhaar Last 4 Digits *</label>
+          <input type="text" id="f-aadhaar" placeholder="7291" maxlength="4"
+            oninput="validateAadhaar(this)">
+          <span class="field-hint">Last 4 digits only</span>
+          <span class="field-error" id="err-aadhaar">Must be 4 digits</span>
+        </div>
+      </div>
+
+      <!-- Section: Documents -->
+      <div class="form-section-label">Documents</div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="f-dl">Driving Licence No. *</label>
+          <input type="text" id="f-dl" placeholder="MH12 20190023441"
+            oninput="this.value=this.value.toUpperCase()">
+          <span class="field-hint">State code + year + number</span>
+        </div>
+        <div class="field">
+          <label for="f-dl-expiry">DL Expiry Date *</label>
+          <input type="date" id="f-dl-expiry">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="f-vehicle">Vehicle RC Number</label>
+          <input type="text" id="f-vehicle" placeholder="MH02AB1234"
+            oninput="this.value=this.value.toUpperCase()">
+        </div>
+        <div class="field">
+          <label for="f-state">Operating State *</label>
+          <select id="f-state">
+            <option value="">— Select —</option>
+            <option value="MH">Maharashtra (MH)</option>
+            <option value="DL">Delhi (DL)</option>
+            <option value="KA">Karnataka (KA)</option>
+            <option value="UP">Uttar Pradesh (UP)</option>
+            <option value="TN">Tamil Nadu (TN)</option>
+            <option value="GJ">Gujarat (GJ)</option>
+            <option value="RJ">Rajasthan (RJ)</option>
+            <option value="WB">West Bengal (WB)</option>
+            <option value="TS">Telangana (TS)</option>
+            <option value="HR">Haryana (HR)</option>
+            <option value="PB">Punjab (PB)</option>
+            <option value="MP">Madhya Pradesh (MP)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Section: Financial -->
+      <div class="form-section-label">Financial & Compliance</div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="f-ifsc">Bank IFSC Code *</label>
+          <input type="text" id="f-ifsc" placeholder="HDFC0001234" maxlength="11"
+            oninput="this.value=this.value.toUpperCase(); validateIFSC(this)">
+          <span class="field-hint">11-character IFSC</span>
+          <span class="field-error" id="err-ifsc">Invalid IFSC format</span>
+        </div>
+        <div class="field">
+          <label for="f-account">Bank Account (last 4)</label>
+          <input type="text" id="f-account" placeholder="3847" maxlength="4">
+        </div>
+      </div>
+
+      <div class="field-row full">
+        <div class="field">
+          <label for="f-gstin">GSTIN</label>
+          <input type="text" id="f-gstin" placeholder="27AABCU9603R1ZX" maxlength="15"
+            oninput="this.value=this.value.toUpperCase()">
+          <span class="field-hint">Leave blank if not registered</span>
+        </div>
+      </div>
+
+      <!-- Section: Agent Config -->
+      <div class="form-section-label">Agent Config</div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="f-priority">Case Priority</label>
+          <select id="f-priority">
+            <option value="normal">Normal</option>
+            <option value="high">High Priority</option>
+            <option value="urgent">Urgent</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="f-investigator">Assigned Investigator</label>
+          <input type="text" id="f-investigator" placeholder="INV-042">
+        </div>
+      </div>
+
+      <!-- Submit -->
+      <button class="submit-btn" id="submit-btn" onclick="runVerification()">
+        ▶ Run Verification Engine
+      </button>
+
+    </div>
+  </div>
+
+  <!-- ── RIGHT: RESULTS ─────────────────────────────── -->
+  <div class="results-col" id="results-col">
+
+    <!-- Empty state -->
+    <div class="empty-state" id="empty-state">
+      <span class="empty-icon">◎</span>
+      <div class="empty-title">No case submitted yet</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.6">
+        Fill the form on the left and click<br>
+        <span style="color:var(--cyan)">"Run Verification Engine"</span><br>
+        to see the agentic decision.
+      </div>
+    </div>
+
+    <!-- Verdict card -->
+    <div class="verdict-card panel" id="verdict-card">
+      <div class="verdict-banner" id="verdict-banner">
+        <div class="verdict-icon" id="verdict-icon">—</div>
+        <div class="verdict-text-block">
+          <div class="verdict-label" id="verdict-label">—</div>
+          <div class="verdict-title" id="verdict-title">—</div>
+          <div class="verdict-reason" id="verdict-reason">—</div>
+        </div>
+        <div class="verdict-score-ring">
+          <svg class="score-ring-svg" width="88" height="88" viewBox="0 0 88 88">
+            <circle cx="44" cy="44" r="34" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="9"/>
+            <circle id="score-ring-fill" cx="44" cy="44" r="34" fill="none"
+              stroke="#38bdf8" stroke-width="9"
+              stroke-dasharray="214" stroke-dashoffset="214"
+              stroke-linecap="round"
+              transform="rotate(-90 44 44)"
+              style="transition: stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1), stroke 0.5s"/>
+            <text id="score-ring-num" x="44" y="40" text-anchor="middle"
+              fill="#e2e8f0" font-family="Unbounded,sans-serif"
+              font-size="16" font-weight="900">0</text>
+            <text x="44" y="54" text-anchor="middle"
+              fill="#475569" font-family="JetBrains Mono,monospace" font-size="7">RISK</text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Checks breakdown -->
+      <div class="panel-head" style="border-top:none">
+        <div class="panel-title">Check Results</div>
+        <span class="panel-badge" id="checks-badge">—</span>
+      </div>
+      <div class="checks-grid" id="checks-grid">
+        <!-- filled by JS -->
+      </div>
+    </div>
+
+    <!-- Fraud factors -->
+    <div class="panel" id="factors-panel" style="display:none">
+      <div class="panel-head">
+        <div class="panel-title">Fraud Signal Breakdown</div>
+        <span class="panel-badge badge-red">Explainability</span>
+      </div>
+      <div class="factors-body" id="factors-body">
+        <!-- filled by JS -->
+      </div>
+    </div>
+
+    <!-- Audit JSON -->
+    <div class="panel" id="audit-panel" style="display:none">
+      <div class="panel-head">
+        <div class="panel-title">Audit Record</div>
+        <span class="panel-badge badge-cyan">Tamper-proof</span>
+      </div>
+      <div class="audit-body">
+        <div class="audit-json" id="audit-json-el">—</div>
+        <button class="copy-btn" onclick="copyAudit()">⎘ Copy JSON</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     CASE HISTORY
+══════════════════════════════════════════════════ -->
+<div class="history-section">
+  <div class="history-header">
+    <div class="section-title">Case History · This Session</div>
+    <button class="clear-btn" onclick="clearHistory()">Clear History</button>
+  </div>
+  <div class="history-table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Case ID</th>
+          <th>Driver</th>
+          <th>Carrier</th>
+          <th>State</th>
+          <th>Fraud Score</th>
+          <th>Verdict</th>
+          <th>Key Signal</th>
+          <th>Time</th>
+        </tr>
+      </thead>
+      <tbody id="history-tbody">
+        <tr>
+          <td colspan="8" style="text-align:center;color:var(--text3);padding:24px;font-size:11px">
+            No cases yet. Submit a verification to see history.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+</div><!-- /.app -->
+
+<!-- ══════════════════════════════════════════════════
+     JAVASCRIPT ENGINE
+══════════════════════════════════════════════════ -->
+<script>
+"use strict";
+
+// ─────────────────────────────────────────────────────
+// CLOCK
+// ─────────────────────────────────────────────────────
+function tick() {
+  const n = new Date();
+  document.getElementById('clock').textContent =
+    String(n.getHours()).padStart(2,'0') + ':' +
+    String(n.getMinutes()).padStart(2,'0') + ':' +
+    String(n.getSeconds()).padStart(2,'0');
+}
+tick(); setInterval(tick, 1000);
+
+// ─────────────────────────────────────────────────────
+// SESSION STATE
+// ─────────────────────────────────────────────────────
+let stats   = { total:0, approved:0, review:0, rejected:0 };
+let history = [];
+let caseCounter = 1000 + Math.floor(Math.random()*1000);
+let lastAuditJSON = '';
+
+function updateStats() {
+  document.getElementById('s-total').textContent    = stats.total;
+  document.getElementById('s-approved').textContent = stats.approved;
+  document.getElementById('s-review').textContent   = stats.review;
+  document.getElementById('s-rejected').textContent = stats.rejected;
+}
+
+// ─────────────────────────────────────────────────────
+// VALIDATION HELPERS
+// ─────────────────────────────────────────────────────
+function validatePAN(el) {
+  const v = el.value;
+  const ok = /^[A-Z]{5}[0-9]{4}[A-Z]$/.test(v);
+  el.className = v.length === 10 ? (ok ? 'valid' : 'invalid') : '';
+  document.getElementById('err-pan').classList.toggle('show', v.length === 10 && !ok);
+  return ok;
+}
+
+function validateAadhaar(el) {
+  const v = el.value;
+  const ok = /^\d{4}$/.test(v);
+  el.className = v.length === 4 ? (ok ? 'valid' : 'invalid') : '';
+  document.getElementById('err-aadhaar').classList.toggle('show', v.length > 0 && !ok);
+  return ok;
+}
+
+function validateIFSC(el) {
+  const v = el.value;
+  const ok = /^[A-Z]{4}0[A-Z0-9]{6}$/.test(v);
+  el.className = v.length === 11 ? (ok ? 'valid' : 'invalid') : '';
+  document.getElementById('err-ifsc').classList.toggle('show', v.length === 11 && !ok);
+  return ok;
+}
+
+// ─────────────────────────────────────────────────────
+// QUICK FILL PRESETS
+// ─────────────────────────────────────────────────────
+const presets = {
+  clean: {
+    name:'Ramesh Kumar', carrier:'Delhivery', pan:'BNZAA2310J',
+    aadhaar:'7291', dl:'MH12 20190023441', dlExpiry: futureDate(3),
+    vehicle:'MH02AB1234', state:'MH', ifsc:'HDFC0001234',
+    account:'3847', gstin:'27AABCU9603R1ZX', priority:'normal', investigator:'INV-042'
+  },
+  review: {
+    name:'Priya Sharma', carrier:'Ecom Express', pan:'CXZPP4421K',
+    aadhaar:'3847', dl:'DL01 20180044221', dlExpiry: futureDate(0.5),
+    vehicle:'DL01CA2234', state:'DL', ifsc:'ICIC0004567',
+    account:'2211', gstin:'07AABCU9603R1ZX', priority:'high', investigator:'INV-017'
+  },
+  fraud: {
+    name:'Deepa Nair', carrier:'DTDC', pan:'EABRR6643M',
+    aadhaar:'ABCD', dl:'TN22 20170011221', dlExpiry: pastDate(120),
+    vehicle:'TN09ZZ9999', state:'DL',  // State mismatch — DL is TN but state is DL
+    ifsc:'SHORT', account:'0000', gstin:'33XXXXXXXXXXX', priority:'urgent', investigator:'INV-099'
+  },
+  blacklist: {
+    name:'Mohan Das', carrier:'Shadowfax', pan:'IEFVV0087Q',  // blacklisted PAN
+    aadhaar:'4444', dl:'WB06 20150033441', dlExpiry: pastDate(200),
+    vehicle:'WB06X1234', state:'WB', ifsc:'ALLA0210378',
+    account:'9999', gstin:'19AABCU9603R1ZX', priority:'urgent', investigator:'INV-001'
+  }
+};
+
+function futureDate(years) {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() + Math.ceil(years));
+  return d.toISOString().split('T')[0];
+}
+
+function pastDate(daysAgo) {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  return d.toISOString().split('T')[0];
+}
+
+function quickFill(preset) {
+  const p = presets[preset];
+  document.getElementById('f-name').value        = p.name;
+  document.getElementById('f-carrier').value     = p.carrier;
+  document.getElementById('f-pan').value         = p.pan;
+  document.getElementById('f-aadhaar').value     = p.aadhaar;
+  document.getElementById('f-dl').value          = p.dl;
+  document.getElementById('f-dl-expiry').value   = p.dlExpiry;
+  document.getElementById('f-vehicle').value     = p.vehicle;
+  document.getElementById('f-state').value       = p.state;
+  document.getElementById('f-ifsc').value        = p.ifsc;
+  document.getElementById('f-account').value     = p.account;
+  document.getElementById('f-gstin').value       = p.gstin;
+  document.getElementById('f-priority').value    = p.priority;
+  document.getElementById('f-investigator').value= p.investigator;
+  // re-validate visual state
+  validatePAN(document.getElementById('f-pan'));
+  validateAadhaar(document.getElementById('f-aadhaar'));
+  validateIFSC(document.getElementById('f-ifsc'));
+}
+
+function clearForm() {
+  ['f-name','f-carrier','f-pan','f-aadhaar','f-dl','f-dl-expiry',
+   'f-vehicle','f-state','f-ifsc','f-account','f-gstin','f-investigator'].forEach(id => {
+    const el = document.getElementById(id);
+    el.value = '';
+    el.className = '';
+  });
+}
+
+// ─────────────────────────────────────────────────────
+// VERIFICATION ENGINE
+// (All checks run client-side — simulates real logic)
+// ─────────────────────────────────────────────────────
+
+const BLACKLIST_PANS = new Set(['IEFVV0087Q','XXXXX1234Y','FRAUD0000Z','CRIME9999X']);
+const BLACKLIST_DL   = new Set(['FAKE123456','EXPFK00001']);
+
+const STATE_GSTIN_PREFIX = {
+  MH:'27',DL:'07',KA:'29',UP:'09',TN:'33',GJ:'24',RJ:'08',WB:'19',TS:'36',HR:'06',PB:'03',MP:'23'
+};
+
+function runChecks(data) {
+  const issues  = [];
+  const checks  = [];
+  let   score   = 0;
+
+  // ── CHECK 1: PAN format ──────────────────────────────────────────
+  const panOk = /^[A-Z]{5}[0-9]{4}[A-Z]$/.test(data.pan);
+  if (!panOk) {
+    issues.push({ signal:'PAN format invalid', weight:30, check:'PAN Verification' });
+    checks.push({ name:'PAN Verification', status:'fail', detail:'Format must be AAAAA9999A', tag:'FAIL' });
+  } else {
+    checks.push({ name:'PAN Verification', status:'pass', detail:'Format valid — ' + data.pan, tag:'PASS' });
+  }
+
+  // ── CHECK 2: Blacklist ────────────────────────────────────────────
+  if (BLACKLIST_PANS.has(data.pan)) {
+    issues.push({ signal:'PAN in fraud blacklist (critical)', weight:100, check:'Blacklist' });
+    checks.push({ name:'Blacklist Check', status:'fail', detail:'PAN ' + data.pan + ' is blacklisted', tag:'CRITICAL' });
+    score += 100;
+  } else if (BLACKLIST_DL.has(data.dl)) {
+    issues.push({ signal:'DL in fraud blacklist (critical)', weight:100, check:'Blacklist' });
+    checks.push({ name:'Blacklist Check', status:'fail', detail:'DL flagged in fraud DB', tag:'CRITICAL' });
+    score += 100;
+  } else {
+    checks.push({ name:'Blacklist Check', status:'pass', detail:'No matches in fraud DB', tag:'CLEAN' });
+  }
+
+  // ── CHECK 3: Aadhaar last 4 ───────────────────────────────────────
+  const aadOk = /^\d{4}$/.test(data.aadhaar);
+  if (!aadOk) {
+    issues.push({ signal:'Aadhaar format invalid', weight:35, check:'Aadhaar' });
+    checks.push({ name:'Aadhaar Verification', status:'fail', detail:'Last 4 must be numeric digits', tag:'FAIL' });
+    score += 35;
+  } else {
+    checks.push({ name:'Aadhaar Verification', status:'pass', detail:'Format valid — xxxx-xxxx-' + data.aadhaar, tag:'PASS' });
+  }
+
+  // ── CHECK 4: DL expiry ────────────────────────────────────────────
+  const dlExpiry = data.dlExpiry ? new Date(data.dlExpiry) : null;
+  const today    = new Date();
+  if (!dlExpiry || isNaN(dlExpiry)) {
+    issues.push({ signal:'DL expiry date missing', weight:25, check:'Document Check' });
+    checks.push({ name:'DL Expiry', status:'fail', detail:'Expiry date not provided', tag:'FAIL' });
+    score += 25;
+  } else {
+    const daysLeft = Math.floor((dlExpiry - today) / 86400000);
+    if (daysLeft < 0) {
+      const ago = Math.abs(daysLeft);
+      issues.push({ signal:'DL expired ' + ago + ' days ago', weight:40, check:'Document Check' });
+      checks.push({ name:'DL Expiry', status:'fail', detail:'Expired ' + ago + ' days ago ('+data.dlExpiry+')', tag:'EXPIRED' });
+      score += 40;
+    } else if (daysLeft < 30) {
+      issues.push({ signal:'DL expires in ' + daysLeft + ' days', weight:20, check:'Document Check' });
+      checks.push({ name:'DL Expiry', status:'warn', detail:'Expires in ' + daysLeft + ' days — renewal needed', tag:'WARN' });
+      score += 20;
+    } else {
+      checks.push({ name:'DL Expiry', status:'pass', detail:'Valid — expires ' + data.dlExpiry + ' (' + daysLeft + ' days)', tag:'VALID' });
+    }
+  }
+
+  // ── CHECK 5: GSTIN state match ────────────────────────────────────
+  const gstin    = data.gstin.trim();
+  const expPfx   = STATE_GSTIN_PREFIX[data.state] || '';
+  if (gstin && expPfx && !gstin.startsWith(expPfx)) {
+    issues.push({ signal:'GSTIN state code mismatch (expected ' + expPfx + ' for ' + data.state + ')', weight:22, check:'GSTIN' });
+    checks.push({ name:'GSTIN Compliance', status:'fail', detail:'Expected prefix ' + expPfx + ' for ' + data.state + ', got ' + gstin.slice(0,2), tag:'MISMATCH' });
+    score += 22;
+  } else if (!gstin) {
+    checks.push({ name:'GSTIN Compliance', status:'warn', detail:'GSTIN not provided — unregistered carrier', tag:'MISSING' });
+    score += 5;
+  } else if (gstin.length !== 15) {
+    issues.push({ signal:'GSTIN length invalid', weight:15, check:'GSTIN' });
+    checks.push({ name:'GSTIN Compliance', status:'fail', detail:'GSTIN must be 15 characters', tag:'FAIL' });
+    score += 15;
+  } else {
+    checks.push({ name:'GSTIN Compliance', status:'pass', detail:'State code matches · GSTIN active', tag:'ACTIVE' });
+  }
+
+  // ── CHECK 6: Bank IFSC ────────────────────────────────────────────
+  const ifscOk = /^[A-Z]{4}0[A-Z0-9]{6}$/.test(data.ifsc);
+  if (!ifscOk) {
+    issues.push({ signal:'Bank IFSC format invalid', weight:25, check:'Bank Verification' });
+    checks.push({ name:'Bank Verification', status:'fail', detail:'IFSC ' + data.ifsc + ' is invalid format', tag:'FAIL' });
+    score += 25;
+  } else {
+    checks.push({ name:'Bank Verification', status:'pass', detail:'IFSC format valid — ' + data.ifsc, tag:'PASS' });
+  }
+
+  // ── CHECK 7: Anomaly (weighted combo score spike) ─────────────────
+  const issueCount = issues.length;
+  if (issueCount >= 3) {
+    issues.push({ signal:'Multiple concurrent failures (' + issueCount + ' signals)', weight:15, check:'Anomaly Detection' });
+    checks.push({ name:'Anomaly Detection', status:'fail', detail: issueCount + ' simultaneous failures — unusual pattern', tag:'ANOMALY' });
+    score += 15;
+  } else if (issueCount === 2) {
+    checks.push({ name:'Anomaly Detection', status:'warn', detail:'2 concurrent issues detected — monitoring', tag:'WATCH' });
+    score += 5;
+  } else {
+    checks.push({ name:'Anomaly Detection', status:'pass', detail:'No anomalous signal pattern', tag:'CLEAR' });
+  }
+
+  score = Math.min(score, 100);
+
+  return { checks, issues, score };
+}
+
+function makeDecision(score, issues) {
+  const hasCritical = issues.some(i => i.weight === 100);
+  if (hasCritical || score >= 65) {
+    const topSignal = issues.sort((a,b)=>b.weight-a.weight)[0];
+    return {
+      verdict: 'REJECTED',
+      title:   'Application Rejected',
+      reason:  topSignal
+        ? 'Critical failure: ' + topSignal.signal + '. Score ' + score + '/100 exceeds rejection threshold.'
+        : 'Fraud score ' + score + '/100 exceeds threshold of 65.',
+      icon: '✕', cls: 'rejected'
+    };
+  }
+  if (score >= 30) {
+    const topSignal = issues[0];
+    return {
+      verdict: 'REVIEW',
+      title:   'Escalated for Review',
+      reason:  topSignal
+        ? 'Signal detected: ' + topSignal.signal + '. Score ' + score + '/100 requires human investigator review.'
+        : 'Marginal score ' + score + '/100 — escalated to human review queue.',
+      icon: '⚠', cls: 'review'
+    };
+  }
+  return {
+    verdict: 'APPROVED',
+    title:   'Application Approved',
+    reason:  'All ' + 7 + ' checks passed. Fraud score ' + score + '/100 is below approval threshold. Driver onboarded.',
+    icon: '✓', cls: 'approved'
+  };
+}
+
+// ─────────────────────────────────────────────────────
+// PIPELINE ANIMATION
+// ─────────────────────────────────────────────────────
+function animatePipeline(cb) {
+  const nodes = Array.from({length:8},(_,i)=>document.getElementById('pn'+i));
+  nodes.forEach(n=>{ n.className='pipe-node'; });
+  let i=0;
+  const iv = setInterval(()=>{
+    if(i>0) nodes[i-1].className='pipe-node done';
+    if(i<nodes.length) { nodes[i].className='pipe-node active'; i++; }
+    else { clearInterval(iv); if(cb) cb(); }
+  }, 200);
+}
+
+// ─────────────────────────────────────────────────────
+// SCORE RING UPDATE
+// ─────────────────────────────────────────────────────
+function updateScoreRing(score, verdict) {
+  const circ   = 2 * Math.PI * 34;   // r=34
+  const offset = circ * (1 - score/100);
+  const ring   = document.getElementById('score-ring-fill');
+  const num    = document.getElementById('score-ring-num');
+  const colors = { approved:'#4ade80', review:'#fbbf24', rejected:'#f87171' };
+
+  ring.setAttribute('stroke-dashoffset', circ); // reset
+  setTimeout(()=>{
+    ring.style.stroke = colors[verdict] || '#38bdf8';
+    ring.setAttribute('stroke-dashoffset', offset);
+    // Animate number
+    let cur = 0;
+    const step = score / 30;
+    const iv = setInterval(()=>{
+      cur = Math.min(cur + step, score);
+      num.textContent = Math.round(cur);
+      if(cur >= score) clearInterval(iv);
+    }, 30);
+  }, 100);
+}
+
+// ─────────────────────────────────────────────────────
+// RENDER CHECKS GRID
+// ─────────────────────────────────────────────────────
+function renderChecks(checks) {
+  const statusMap = {
+    pass: { icon:'✓', cls:'pass', tagCls:'tag-pass' },
+    fail: { icon:'✕', cls:'fail', tagCls:'tag-fail' },
+    warn: { icon:'⚠', cls:'warn', tagCls:'tag-warn' },
+    skip: { icon:'—', cls:'skip', tagCls:'tag-skip' },
+  };
+  document.getElementById('checks-grid').innerHTML = checks.map(c => {
+    const sm = statusMap[c.status] || statusMap.skip;
+    return `<div class="check-cell">
+      <div class="check-icon ${sm.cls}">${sm.icon}</div>
+      <div>
+        <div class="check-name">${c.name}</div>
+        <div class="check-detail">${c.detail}</div>
+        <span class="check-tag ${sm.tagCls}">${c.tag}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  const passed = checks.filter(c=>c.status==='pass').length;
+  const badge  = document.getElementById('checks-badge');
+  badge.textContent = passed + '/' + checks.length + ' Passed';
+  badge.className = 'panel-badge ' + (passed===checks.length?'badge-green': passed>=5?'badge-amber':'badge-red');
+}
+
+// ─────────────────────────────────────────────────────
+// RENDER FACTORS
+// ─────────────────────────────────────────────────────
+function renderFactors(issues) {
+  const fp = document.getElementById('factors-panel');
+  const fb = document.getElementById('factors-body');
+  if(!issues.length) { fp.style.display='none'; return; }
+  fp.style.display = 'block';
+
+  const maxW = Math.max(...issues.map(i=>i.weight));
+  const colors = (w) => w>=60?'var(--red)': w>=20?'var(--amber)':'var(--cyan)';
+
+  fb.innerHTML = issues.map(i=>`
+    <div class="factor-row">
+      <span class="factor-name">${i.signal}</span>
+      <div class="factor-bar-track">
+        <div class="factor-bar-fill"
+          style="width:${Math.round(i.weight/maxW*100)}%;background:${colors(i.weight)}"></div>
+      </div>
+      <span class="factor-weight" style="color:${colors(i.weight)}">+${i.weight}</span>
+    </div>
+  `).join('');
+}
+
+// ─────────────────────────────────────────────────────
+// SYNTAX-HIGHLIGHT JSON
+// ─────────────────────────────────────────────────────
+function highlightJSON(obj) {
+  return JSON.stringify(obj, null, 2)
+    .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, match => {
+      if (/^"/.test(match)) {
+        if (/:$/.test(match)) return '<span class="json-key">'+match+'</span>';
+        return '<span class="json-str">'+match+'</span>';
+      }
+      if (/true|false|null/.test(match)) return '<span class="json-bool">'+match+'</span>';
+      return '<span class="json-num">'+match+'</span>';
+    });
+}
+
+// ─────────────────────────────────────────────────────
+// BUILD AUDIT RECORD
+// ─────────────────────────────────────────────────────
+function buildAudit(data, checks, issues, score, decision, ms) {
+  const cid = 'CV-' + (++caseCounter);
+  // Simple hash: sum of char codes of core fields
+  const core = cid + data.pan + score + decision.verdict + new Date().toISOString();
+  let h = 0;
+  for(let i=0;i<core.length;i++) h=(h*31+core.charCodeAt(i))>>>0;
+  const hashStr = 'sha256-' + h.toString(16).padStart(8,'0') + Math.random().toString(36).slice(2,10);
+
+  return {
+    case_id:        cid,
+    timestamp:      new Date().toISOString(),
+    driver_name:    data.name,
+    carrier:        data.carrier,
+    state:          data.state,
+    pan:            data.pan,
+    aadhaar_last4:  data.aadhaar,
+    dl_number:      data.dl,
+    dl_expiry:      data.dlExpiry,
+    gstin:          data.gstin || null,
+    bank_ifsc:      data.ifsc,
+    decision:       decision.verdict,
+    fraud_score:    score,
+    checks_run:     checks.length,
+    checks_passed:  checks.filter(c=>c.status==='pass').length,
+    fraud_signals:  issues.map(i=>i.signal),
+    reason:         decision.reason,
+    processing_ms:  ms,
+    priority:       data.priority,
+    investigator:   data.investigator || null,
+    agent_version:  '1.0.0',
+    audit_hash:     hashStr
+  };
+}
+
+// ─────────────────────────────────────────────────────
+// ADD TO HISTORY TABLE
+// ─────────────────────────────────────────────────────
+function addToHistory(audit, decision) {
+  history.unshift({ audit, decision });
+  const riskColor = audit.fraud_score>=65?'var(--red)': audit.fraud_score>=30?'var(--amber)':'var(--green)';
+  const pillar = `pill-${decision.cls}`;
+  const topSignal = audit.fraud_signals[0] || 'No signals';
+
+  const tbody = document.getElementById('history-tbody');
+  if(tbody.querySelector('td[colspan]')) tbody.innerHTML='';
+
+  const row = document.createElement('tr');
+  row.innerHTML = `
+    <td><span style="color:var(--cyan);font-size:11px">${audit.case_id}</span></td>
+    <td><div style="font-weight:600">${audit.driver_name}</div></td>
+    <td style="color:var(--text2)">${audit.carrier}</td>
+    <td><span style="color:var(--text3)">${audit.state}</span></td>
+    <td>
+      <div class="risk-spark">
+        <div class="risk-track"><div class="risk-fill" style="width:${audit.fraud_score}%;background:${riskColor}"></div></div>
+        <span style="font-size:11px;color:${riskColor}">${audit.fraud_score}</span>
+      </div>
+    </td>
+    <td><span class="verdict-pill ${pillar}">${decision.icon} ${decision.verdict}</span></td>
+    <td style="font-size:10px;color:var(--text3);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${topSignal}</td>
+    <td style="font-size:10px;color:var(--text3)">${audit.processing_ms}ms</td>
+  `;
+  tbody.prepend(row);
+}
+
+// ─────────────────────────────────────────────────────
+// MAIN VERIFICATION RUNNER
+// ─────────────────────────────────────────────────────
+function runVerification() {
+  // Read form
+  const data = {
+    name:        document.getElementById('f-name').value.trim(),
+    carrier:     document.getElementById('f-carrier').value,
+    pan:         document.getElementById('f-pan').value.trim().toUpperCase(),
+    aadhaar:     document.getElementById('f-aadhaar').value.trim(),
+    dl:          document.getElementById('f-dl').value.trim().toUpperCase(),
+    dlExpiry:    document.getElementById('f-dl-expiry').value,
+    vehicle:     document.getElementById('f-vehicle').value.trim().toUpperCase(),
+    state:       document.getElementById('f-state').value,
+    ifsc:        document.getElementById('f-ifsc').value.trim().toUpperCase(),
+    account:     document.getElementById('f-account').value.trim(),
+    gstin:       document.getElementById('f-gstin').value.trim().toUpperCase(),
+    priority:    document.getElementById('f-priority').value,
+    investigator:document.getElementById('f-investigator').value.trim(),
+  };
+
+  // Basic required field check
+  if(!data.name || !data.pan || !data.aadhaar || !data.carrier || !data.state || !data.ifsc || !data.dlExpiry) {
+    alert('Please fill all required fields (marked with *).');
+    return;
+  }
+
+  const btn = document.getElementById('submit-btn');
+  btn.className = 'submit-btn loading';
+  btn.textContent = '⟳ Agent Running...';
+
+  // Hide old results
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('verdict-card').classList.remove('show');
+  document.getElementById('factors-panel').style.display = 'none';
+  document.getElementById('audit-panel').style.display = 'none';
+
+  const startMs = performance.now();
+
+  // Animate pipeline, then run checks
+  animatePipeline(() => {
+    const { checks, issues, score } = runChecks(data);
+    const decision  = makeDecision(score, [...issues]);
+    const elapsed   = Math.round(performance.now() - startMs);
+
+    const audit = buildAudit(data, checks, issues, score, decision, elapsed);
+    lastAuditJSON = JSON.stringify(audit, null, 2);
+
+    // Update verdict banner
+    const vc = document.getElementById('verdict-card');
+    const vb = document.getElementById('verdict-banner');
+    vb.className = 'verdict-banner ' + decision.cls;
+    document.getElementById('verdict-icon').className  = 'verdict-icon ' + decision.cls;
+    document.getElementById('verdict-icon').textContent = decision.icon;
+    document.getElementById('verdict-label').className = 'verdict-label ' + decision.cls;
+    document.getElementById('verdict-label').textContent = 'Decision: ' + decision.verdict;
+    document.getElementById('verdict-title').textContent = decision.title;
+    document.getElementById('verdict-reason').textContent = decision.reason;
+
+    updateScoreRing(score, decision.cls);
+    renderChecks(checks);
+    renderFactors(issues);
+
+    // Audit JSON
+    document.getElementById('audit-json-el').innerHTML = highlightJSON(audit);
+    document.getElementById('audit-panel').style.display = 'block';
+
+    vc.classList.add('show');
+
+    // Stats
+    stats.total++;
+    stats[decision.cls === 'approved'?'approved': decision.cls==='review'?'review':'rejected']++;
+    document.getElementById('s-time').textContent = elapsed + 'ms';
+    updateStats();
+
+    // History
+    addToHistory(audit, decision);
+
+    // Reset button
+    btn.className = 'submit-btn';
+    btn.textContent = '▶ Run Verification Engine';
+
+    // Scroll to results on mobile
+    if(window.innerWidth < 900) {
+      document.getElementById('verdict-card').scrollIntoView({ behavior:'smooth', block:'start' });
+    }
+  });
+}
+
+function copyAudit() {
+  navigator.clipboard.writeText(lastAuditJSON).then(()=>{
+    const btn = document.querySelector('.copy-btn');
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copied!';
+    setTimeout(()=>btn.textContent=orig, 1500);
+  }).catch(()=> alert(lastAuditJSON));
+}
+
+function clearHistory() {
+  history = [];
+  document.getElementById('history-tbody').innerHTML = `
+    <tr><td colspan="8" style="text-align:center;color:var(--text3);padding:24px;font-size:11px">
+      No cases yet. Submit a verification to see history.
+    </td></tr>`;
+}
+
+// Allow Enter key on form
+document.addEventListener('keydown', e => {
+  if(e.key==='Enter' && e.ctrlKey) runVerification();
+});
+</script>
+</body>
+</html>
